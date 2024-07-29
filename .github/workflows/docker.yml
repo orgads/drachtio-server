@@ -19,7 +19,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            orgads/rtpengine
+            orgads/drachtio-server
           tags: |
             type=match,pattern=v(.*),group=1
 
