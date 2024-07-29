@@ -163,10 +163,12 @@ namespace drachtio {
                 return false ;       
             } 
             else {
-                vector<string> hps ;
-                theOneAndOnlyController->getMyHostports( hps ) ;
+                vector<string> hps, hpsLocal ;
+                theOneAndOnlyController->getMyHostports( hps ) ;            // public hostports
+                theOneAndOnlyController->getMyHostports( hpsLocal, true) ;  // local hostports
                 string hostports = boost::algorithm::join(hps, ",") ;
-                string response = hostports + "|" + DRACHTIO_VERSION;
+                string localHostports = boost::algorithm::join(hpsLocal, ",") ;
+                string response = hostports + "|" + DRACHTIO_VERSION + "|" + localHostports ;
                 createResponseMsg( tokens[0], msgResponse, true, response.c_str()) ;
                 DR_LOG(log_debug) << "Client::processAuthentication - secret validated successfully: " << secret ;
                 return true ;
@@ -256,33 +258,41 @@ namespace drachtio {
     }
 
     bool BaseClient::readMessageLength(unsigned int& len) {
-        bool continueOn = true ;
-        std::array<char, 6> ch ;
-        memset( ch.data(), 0, sizeof(ch)) ;
-        unsigned int i = 0 ;
-        char c ;
-        do {
-            c = m_buffer.front() ;
-            m_buffer.pop_front() ;
-            if ('#' == c) break ;
-            if (!isdigit(c)) throw std::runtime_error("Client::readMessageLength - invalid message length specifier") ;
-            ch[i++] = c ;
-        } while(m_buffer.size() && i < 6) ;
+      std::string lengthStr;
+      char c;
 
-        if (6 == i) throw std::runtime_error("Client::readMessageLength - invalid message length specifier") ;
+      while (!m_buffer.empty() && lengthStr.size() < 6) {
+          c = m_buffer.front();
+          m_buffer.pop_front();
 
-        if (0 == m_buffer.size()) {
-            if('#' != c) {
-                /* the message was split in the middle of the length specifier - put them back for next time to be read in full once remainder come in */
-                for( unsigned int n = 0; n < i; n++ ) m_buffer.push_back( ch[n] ) ;
-                len = 0 ;
-                return false ;
-            }
-            continueOn = false ;
-        }
+          if (c == '#') {
+              if (lengthStr.empty()) {
+                  throw std::runtime_error("Client::readMessageLength - empty length specifier");
+              }
+              len = boost::lexical_cast<unsigned int>(lengthStr);
+              return true;
+          }
 
-        len = boost::lexical_cast<unsigned int>(ch.data()); 
-        return continueOn ;
+          if (!std::isdigit(c)) {
+              throw std::runtime_error("Client::readMessageLength - invalid message length specifier");
+          }
+          lengthStr += c;
+      }
+
+      // If we exhausted the buffer and didn't find a '#'
+      if (m_buffer.empty() && lengthStr.size() < 6) {
+          // Push the characters back to the buffer if we didn't find the '#'
+          for (char ch : lengthStr) {
+              m_buffer.push_front(ch);
+          }
+          return false;
+      }
+
+      // If lengthStr size is 6 and still no '#' is found
+      if (lengthStr.size() == 6) {
+          throw std::runtime_error("Client::readMessageLength - length specifier too long");
+      }
+    return false; // If we don't find the complete length specifier
     }
 
 
@@ -449,23 +459,23 @@ read_again:
 
     template<typename T, typename S>
     void Client<T,S>::send( const string& str ) {
-        int len = utf8_strlen(str);
+        try {
+            // int len = utf8_strlen(str);
+            int len = str.size();
 
-        if (0 == len) {
-            DR_LOG(log_info) << "Client::send - we are unable to send this message back to client" << str; 
-            return;
+            auto forthelifeofsend = std::make_shared<std::string>(
+                std::to_string(len) + std::string("#") + str
+            );
+
+            auto self(shared_from_this());
+            DR_LOG(log_debug) << "Sending: " << *forthelifeofsend << endl ;
+            boost::asio::async_write( m_sock, boost::asio::buffer( *forthelifeofsend ), 
+                [self, forthelifeofsend](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+                    DR_LOG(log_debug) << "Client::send - wrote " << bytes_transferred << " bytes: " << ec  ;
+                } );
+        } catch (const std::runtime_error& e) {
+            DR_LOG(log_error) << "Client::send failed, message is not using utf-8 encoding: " << e.what() << std::endl;
         }
-
-        auto forthelifeofsend = std::make_shared<std::string>(
-            std::to_string(len) + std::string("#") + str
-        );
-
-        auto self(shared_from_this());
-        DR_LOG(log_debug) << "Sending: " << *forthelifeofsend << endl ;
-        boost::asio::async_write( m_sock, boost::asio::buffer( *forthelifeofsend ), 
-            [self, forthelifeofsend](const boost::system::error_code& ec, std::size_t bytes_transferred) {
-                DR_LOG(log_debug) << "Client::send - wrote " << bytes_transferred << " bytes: " << ec  ;
-            } );
     }
 
     // Client (member function specializations for plain tcp connections)
@@ -528,7 +538,7 @@ read_again:
 
         }
         else if( endpointIterator != tcp::resolver::iterator() ) {
-            DR_LOG(log_debug) << "Client::connect_handler tcp - failed to connecte to " <<
+            DR_LOG(log_debug) << "Client::connect_handler tcp - failed to connect to " <<
             endpoint_address() << ":" << endpoint_port() ;
             m_sock.close() ;
             tcp::endpoint endpoint = *endpointIterator;
