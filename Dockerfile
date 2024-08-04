@@ -37,11 +37,15 @@ RUN apt-get update \
     ca-certificates \
     curl \
     jq \
+    less \
     libboost-filesystem1.74.0 \
     libboost-log1.74.0 \
     libboost-system1.74.0 \
     libboost-thread1.74.0 \
     libgoogle-perftools4 \
+    net-tools \
+    procps \
+    sudo \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 COPY --from=build /usr/local/src/drachtio-server/build/drachtio /usr/local/bin/
@@ -51,5 +55,11 @@ COPY ./entrypoint.sh /
 VOLUME ["/config"]
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+RUN echo '%sudo   ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd && \
+  groupadd --gid 1000 drachtio && \
+  useradd --uid 1000 --gid drachtio -G sudo --shell /bin/bash --create-home drachtio
+USER drachtio
+WORKDIR /home/drachtio
 
 CMD ["drachtio"]
