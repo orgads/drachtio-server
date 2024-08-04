@@ -37,4 +37,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            MYVERSION=${{ steps.meta.outputs.tags }}
+            MYVERSION=${{ env.DOCKER_METADATA_OUTPUT_VERSION }}
