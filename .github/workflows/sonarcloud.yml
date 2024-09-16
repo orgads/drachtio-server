@@ -10,14 +10,14 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SONAR_SCANNER_VERSION: 4.6.1.2450 # Find the latest version in the "Linux" link on this page:
       # https://sonarcloud.io/documentation/analysis/scan/sonarscanner/
       SONAR_SERVER_URL: "https://sonarcloud.io"
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
           submodules: recursive
@@ -47,9 +47,20 @@ jobs:
           unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
           echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH
       - name: build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libtool libtool-bin libcurl4-openssl-dev libpcap-dev  libunwind-dev libgoogle-perftools-dev
+        run: >
+          sudo apt-get update &&
+          sudo apt-get install -y
+          libboost-filesystem-dev
+          libboost-log-dev
+          libboost-system-dev
+          libboost-thread-dev
+          libcurl4-openssl-dev
+          libgoogle-perftools-dev
+          libpcap-dev
+          libtool
+          libtool-bin
+          libunwind-dev
+          sip-tester
       - name: Run build-wrapper
         run: |
           ./autogen.sh
