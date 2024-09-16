@@ -19,7 +19,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            orgads/drachtio-server
+            audiocodes/drachtio-server
           tags: |
             type=match,pattern=v(.*),group=1
 
