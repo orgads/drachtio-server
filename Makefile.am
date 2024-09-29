@@ -8,11 +8,6 @@ INCLUDES= -I${srcdir}/deps/sofia-sip/libsofia-sip-ua/su -I${srcdir}/deps/sofia-s
 AM_LDFLAGS= -L/usr/local/lib -L${srcdir}/deps/prometheus-cpp/build/lib
 LDADD= -lboost_thread -lpthread -lssl -lcrypto -lz
 
-if DEP_HIREDIS
-INCLUDES += -I${srcdir}/deps
-AM_LDFLAGS += -L${srcdir}/deps/hiredis
-endif
-
 bin_PROGRAMS= drachtio timer ssltest parser uri_test test_https test_asio_curl
 
 ACLOCAL_AMFLAGS = -I m4
@@ -83,10 +78,6 @@ endif
 BUILT_SOURCES=${srcdir}/deps/sofia-sip/libsofia-sip-ua/.libs/libsofia-sip-ua.a \
 	${srcdir}/deps/jansson/src/.libs/libjansson.a ${srcdir}/deps/prometheus-cpp/build/lib/libprometheus-cpp-core.a
 
-if DEP_HIREDIS
-BUILT_SOURCES += ${srcdir}/deps/hiredis/libhiredis.a
-endif
-
 clean-local:
 
 ${srcdir}/deps/sofia-sip/libsofia-sip-ua/.libs/libsofia-sip-ua.a:
@@ -99,8 +90,3 @@ ${srcdir}/deps/prometheus-cpp/build/lib/libprometheus-cpp-core.a ${srcdir}/deps/
 	cd ${srcdir}/deps/prometheus-cpp && mkdir -p build && cd build  && \
 	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=`pwd` && \
 	$(MAKE) && make install
-
-if DEP_HIREDIS
-${srcdir}/deps/hiredis/libhiredis.a:
-	cd ${srcdir}/deps/hiredis && cmake -DBUILD_SHARED_LIBS=OFF -DENABLE_SSL=ON . && $(MAKE)
-endif
