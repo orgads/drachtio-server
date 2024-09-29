@@ -10,12 +10,14 @@ RUN apt-get update \
     g++ \
     gcc \
     git \
+    jq \
     libboost-filesystem-dev \
     libboost-log-dev \
     libboost-system-dev \
     libboost-thread-dev \
     libcurl4-openssl-dev \
     libgoogle-perftools-dev \
+    libhiredis-dev \
     libssl-dev \
     libtool \
     libtool-bin \
@@ -42,6 +44,7 @@ RUN apt-get update \
     libboost-system1.74.0 \
     libboost-thread1.74.0 \
     libgoogle-perftools4 \
+    libhiredis0.14 \
     net-tools \
     procps \
     sudo \
