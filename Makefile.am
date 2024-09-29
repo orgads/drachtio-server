@@ -5,11 +5,6 @@ MYVERSION=$(shell git describe --always 2>/dev/null || echo 1.0.0)
 AM_LDFLAGS= -L/usr/local/lib -L${srcdir}/deps/prometheus-cpp/build/lib
 LDADD= -lboost_thread
 
-if DEP_HIREDIS
-INCLUDES += -I${srcdir}/deps
-AM_LDFLAGS += -L${srcdir}/deps/hiredis
-endif
-
 bin_PROGRAMS= drachtio
 
 ACLOCAL_AMFLAGS = -I m4
@@ -59,10 +54,6 @@ endif
 BUILT_SOURCES=${srcdir}/deps/sofia-sip/libsofia-sip-ua/.libs/libsofia-sip-ua.a \
 	${srcdir}/deps/jansson/src/.libs/libjansson.a ${srcdir}/deps/prometheus-cpp/build/lib/libprometheus-cpp-core.a
 
-if DEP_HIREDIS
-BUILT_SOURCES += ${srcdir}/deps/hiredis/libhiredis.a
-endif
-
 clean-local:
 
 ${srcdir}/deps/sofia-sip/libsofia-sip-ua/.libs/libsofia-sip-ua.a:
@@ -75,8 +66,3 @@ ${srcdir}/deps/prometheus-cpp/build/lib/libprometheus-cpp-core.a ${srcdir}/deps/
 	cd ${srcdir}/deps/prometheus-cpp && mkdir -p build && cd build  && \
 	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=`pwd` && \
 	$(MAKE) && make install
-
-if DEP_HIREDIS
-${srcdir}/deps/hiredis/libhiredis.a:
-	cd ${srcdir}/deps/hiredis && cmake -DBUILD_SHARED_LIBS=OFF -DENABLE_SSL=ON . && $(MAKE)
-endif
